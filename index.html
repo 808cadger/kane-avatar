@@ -147,10 +147,14 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
 .mode-tabs { display:flex; gap:4px; margin-left:auto; }
 .tab-btn { padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12px; cursor:pointer; transition:all .2s; }
 .tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
-#api-bar { display:flex; gap:8px; padding:10px 20px; border-bottom:1px solid var(--border); flex-shrink:0; }
+#api-bar { display:flex; gap:8px; padding:10px 20px 6px; border-bottom:none; flex-shrink:0; }
 #api-key-input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 12px; color:var(--text); font-size:12px; font-family:monospace; }
 #api-key-input:focus { outline:none; border-color:var(--accent); }
 #save-key-btn { padding:7px 14px; background:var(--accent); border:none; border-radius:8px; color:#fff; font-size:12px; cursor:pointer; }
+#el-bar { display:flex; gap:8px; padding:0 20px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+#el-key-input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 12px; color:var(--text); font-size:12px; font-family:monospace; }
+#el-key-input:focus { outline:none; border-color:var(--accent2); }
+#save-el-btn { padding:7px 14px; background:var(--accent2); border:none; border-radius:8px; color:#fff; font-size:12px; cursor:pointer; }
 #content-area { flex:1; overflow:hidden; position:relative; }
 #chat-view { position:absolute; inset:0; display:none; flex-direction:column; }
 #chat-view.active { display:flex; }
@@ -181,10 +185,24 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
 #app-frame { width:100%; height:100%; border:none; background:#fff; }
 #no-app-placeholder { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--muted); font-size:14px; }
 #no-app-placeholder .icon { font-size:48px; opacity:.3; }
-#input-bar { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-shrink:0; background:var(--panel-bg); }
-#mic-btn { width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:16px; cursor:pointer; flex-shrink:0; transition:all .2s; display:flex; align-items:center; justify-content:center; }
-#mic-btn.listening { background:#ff4444; border-color:#ff4444; color:#fff; animation:mic-pulse .8s ease-in-out infinite; }
-@keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,.4)} 50%{box-shadow:0 0 0 8px rgba(255,68,68,0)} }
+#input-bar { position:relative; padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-shrink:0; background:var(--panel-bg); }
+#mic-btn { width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:16px; cursor:pointer; flex-shrink:0; transition:background .2s, border-color .2s; display:flex; align-items:center; justify-content:center; user-select:none; -webkit-user-select:none; }
+#mic-btn.listening { background:#ff4444; border-color:#ff4444; color:#fff; }
+#transcript-overlay {
+  position:absolute; bottom:100%; left:0; right:0;
+  background:var(--surface); border:1px solid var(--accent);
+  border-radius:14px 14px 0 0; padding:14px 16px 12px;
+  display:none; z-index:20;
+  box-shadow:0 -6px 24px rgba(108,99,255,.18);
+  animation:msg-in .18s ease;
+}
+#transcript-overlay.active { display:block; }
+#transcript-text { font-size:14px; color:var(--text); min-height:22px; line-height:1.55; word-break:break-word; }
+#transcript-text.placeholder { color:var(--muted); font-style:italic; }
+#transcript-footer { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+#transcript-hint { font-size:11px; color:var(--muted); }
+#transcript-cancel { background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; padding:2px 6px; line-height:1; border-radius:4px; }
+#transcript-cancel:hover { color:var(--text); background:var(--border); }
 #text-input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:10px 18px; color:var(--text); font-size:14px; resize:none; line-height:1.4; max-height:100px; overflow-y:auto; }
 #text-input:focus { outline:none; border-color:var(--accent); }
 #text-input::placeholder { color:var(--muted); }
@@ -498,10 +516,14 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
           <path d="M 248 228 C 250 233" stroke="#1a0808" stroke-width="1" stroke-linecap="round" opacity=".32"/>
 
           <!-- Eyebrows (filled shape + fine strokes) -->
-          <path d="M 144 192 C 152 185 164 182 180 186 C 186 188 188 191 185 193 C 175 190 162 190 148 196 Z" fill="#1a1010" opacity=".85"/>
-          <path d="M 145 193 C 158 186 168 184 182 187" stroke="#2a1818" stroke-width="1.2" fill="none" opacity=".45"/>
-          <path d="M 256 192 C 248 185 236 182 220 186 C 214 188 212 191 215 193 C 225 190 238 190 252 196 Z" fill="#1a1010" opacity=".85"/>
-          <path d="M 255 193 C 242 186 232 184 218 187" stroke="#2a1818" stroke-width="1.2" fill="none" opacity=".45"/>
+          <g id="brow-l" style="transform-origin:164px 190px">
+            <path d="M 144 192 C 152 185 164 182 180 186 C 186 188 188 191 185 193 C 175 190 162 190 148 196 Z" fill="#1a1010" opacity=".85"/>
+            <path d="M 145 193 C 158 186 168 184 182 187" stroke="#2a1818" stroke-width="1.2" fill="none" opacity=".45"/>
+          </g>
+          <g id="brow-r" style="transform-origin:234px 190px">
+            <path d="M 256 192 C 248 185 236 182 220 186 C 214 188 212 191 215 193 C 225 190 238 190 252 196 Z" fill="#1a1010" opacity=".85"/>
+            <path d="M 255 193 C 242 186 232 184 218 187" stroke="#2a1818" stroke-width="1.2" fill="none" opacity=".45"/>
+          </g>
 
           <!-- Nose -->
           <path d="M 197 228 C 195 242 191 254 188 263" stroke="#c07858" stroke-width="3" stroke-linecap="round" fill="none" opacity=".38"/>
@@ -530,8 +552,8 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
           </g>
 
           <!-- Cheek blush -->
-          <ellipse cx="148" cy="264" rx="22" ry="13" fill="#e08070" opacity=".13" transform="rotate(-5 148 264)"/>
-          <ellipse cx="252" cy="264" rx="22" ry="13" fill="#e08070" opacity=".13" transform="rotate(5 252 264)"/>
+          <ellipse id="blush-l" cx="148" cy="264" rx="22" ry="13" fill="#e08070" opacity=".13" transform="rotate(-5 148 264)" style="transition:opacity .5s ease"/>
+          <ellipse id="blush-r" cx="252" cy="264" rx="22" ry="13" fill="#e08070" opacity=".13" transform="rotate(5 252 264)" style="transition:opacity .5s ease"/>
 
           <!-- Front hair -->
           <g class="hair-group">
@@ -584,6 +606,10 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
     <input type="password" id="api-key-input" placeholder="sk-ant-… (Anthropic API key)"/>
     <button id="save-key-btn" onclick="saveKey()">Save</button>
   </div>
+  <div id="el-bar">
+    <input type="password" id="el-key-input" placeholder="ElevenLabs API key (voice)"/>
+    <button id="save-el-btn" onclick="saveElKey()">Save</button>
+  </div>
   <div id="content-area">
     <div id="chat-view" class="active">
       <div id="chat-messages">
@@ -611,8 +637,15 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
     </div>
   </div>
   <div id="input-bar">
-    <button id="mic-btn" onclick="toggleMic()" title="Voice input">🎤</button>
-    <textarea id="text-input" rows="1" placeholder="Ask anything… or say 'wave hello' to test"
+    <div id="transcript-overlay">
+      <div id="transcript-text" class="placeholder">Listening…</div>
+      <div id="transcript-footer">
+        <span id="transcript-hint">Hold mic or Space to speak · release to send</span>
+        <button id="transcript-cancel" title="Cancel (Esc)">✕</button>
+      </div>
+    </div>
+    <button id="mic-btn" title="Hold to speak (or hold Space)">🎤</button>
+    <textarea id="text-input" rows="1" placeholder="Ask Aria anything…"
               onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
     <div id="tts-controls">
       <span id="voice-label">Voice</span>
@@ -626,7 +659,8 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
 <script>
 // ── State ──
 const S = {
-  apiKey: localStorage.getItem('aria_key') || '',
+  apiKey:    localStorage.getItem('aria_key')    || '',
+  elevenKey: localStorage.getItem('aria_el_key') || '',
   mode: 'chat', speaking: false, listening: false,
   voiceEnabled: true, talkingInterval: null,
   messages: [], currentGesture: null,
@@ -634,11 +668,13 @@ const S = {
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-  if (S.apiKey) document.getElementById('api-key-input').value = '•'.repeat(20);
+  if (S.apiKey)    document.getElementById('api-key-input').value = '•'.repeat(20);
+  if (S.elevenKey) document.getElementById('el-key-input').value  = '•'.repeat(20);
   S.voiceEnabled = localStorage.getItem('aria_voice') !== 'off';
   document.getElementById('speak-toggle').className = S.voiceEnabled ? 'on' : '';
   startBlinkLoop();
   startEyeTracking();
+  setupMicButton();
   setTimeout(() => {
     playGesture('wave');
     if (S.voiceEnabled) {
@@ -647,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 600);
 });
 
-// ── API Key ──
+// ── API Keys ──
 function saveKey() {
   const v = document.getElementById('api-key-input').value.trim();
   if (v && !v.startsWith('•')) {
@@ -655,6 +691,15 @@ function saveKey() {
     localStorage.setItem('aria_key', v);
     document.getElementById('api-key-input').value = '•'.repeat(20);
     showStatus('Key saved ✓');
+  }
+}
+function saveElKey() {
+  const v = document.getElementById('el-key-input').value.trim();
+  if (v && !v.startsWith('•')) {
+    S.elevenKey = v;
+    localStorage.setItem('aria_el_key', v);
+    document.getElementById('el-key-input').value = '•'.repeat(20);
+    showStatus('Voice key saved ✓');
   }
 }
 
@@ -714,11 +759,6 @@ function playGesture(name, durationMs) {
     head.classList.add('talking');
     document.getElementById('avatar-svg-wrap').classList.add('speaking');
     setStatus('Speaking…', '#6c63ff');
-    let m = 0;
-    S.talkingInterval = setInterval(() => {
-      m = (m + 1) % 4;
-      setMouth([0, .7, 1, .4][m]);
-    }, 115);
   }
   else if (name === 'thinking') {
     head.classList.add('thinking');
@@ -841,6 +881,11 @@ function startEyeTracking() {
 // ── TTS ──
 function speakText(txt) {
   if (!S.voiceEnabled) return;
+  if (S.elevenKey) speakElevenLabs(txt);
+  else speakBrowser(txt);
+}
+
+function speakBrowser(txt) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(txt);
   const voices = window.speechSynthesis.getVoices();
@@ -851,49 +896,281 @@ function speakText(txt) {
   ) || voices.find(v => v.lang.startsWith('en'));
   if (pref) u.voice = pref;
   u.rate = 1.0; u.pitch = 1.05; u.volume = .9;
-  u.onstart = () => { S.speaking = true; playGesture('talking'); };
-  u.onend = u.onerror = () => { S.speaking = false; playGesture('idle'); };
+  u.onstart = () => { S.speaking = true; playGesture('talking'); startFakeLipSync(); };
+  u.onend = u.onerror = () => {
+    S.speaking = false;
+    clearInterval(S.talkingInterval);
+    setMouth(0);
+    playGesture('idle');
+  };
   window.speechSynthesis.speak(u);
 }
+
+function startFakeLipSync() {
+  clearInterval(S.talkingInterval);
+  let m = 0;
+  S.talkingInterval = setInterval(() => {
+    m = (m + 1) % 4;
+    setMouth([0, .7, 1, .4][m]);
+  }, 115);
+}
+
+async function speakElevenLabs(txt) {
+  const VOICE = 'EXAVITQu4vr4xnSDxMaL'; // Bella
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': S.elevenKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({
+        text: txt,
+        model_id: 'eleven_turbo_v2_5',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+      })
+    });
+    if (!res.ok) throw new Error('EL ' + res.status);
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+    const audio = new Audio(url);
+    const src   = ctx.createMediaElementSource(audio);
+    const an    = ctx.createAnalyser();
+    an.fftSize = 512; an.smoothingTimeConstant = 0.75;
+    src.connect(an); an.connect(ctx.destination);
+    const fd = new Uint8Array(an.frequencyBinCount);
+    let raf;
+    function tick() {
+      an.getByteFrequencyData(fd);
+      const energy = (fd[1]+fd[2]+fd[3]+fd[4]+fd[5]) / 5 / 255;
+      setMouth(Math.min(1, energy * 2.8));
+      raf = requestAnimationFrame(tick);
+    }
+    audio.onplay  = () => { S.speaking = true; playGesture('talking'); tick(); };
+    audio.onended = audio.onerror = () => {
+      S.speaking = false; cancelAnimationFrame(raf); setMouth(0);
+      playGesture('idle'); URL.revokeObjectURL(url); ctx.close();
+    };
+    audio.play();
+  } catch(e) {
+    console.warn('ElevenLabs:', e.message);
+    speakBrowser(txt);
+  }
+}
+
+// ── Emotion expressions ──
+function detectEmotion(txt) {
+  const t = txt.toLowerCase();
+  if (/\b(sorry|unfortunately|trouble|problem|issue|error|difficult|concern|careful|warning)\b/.test(t)) return 'concerned';
+  if (/(!{2,}|\bwow\b|\bamazing\b|\bincredible\b|\bunbelievable\b|\bsurpris\b|\boh my\b)/.test(t)) return 'surprised';
+  if (/\b(great|wonderful|excellent|happy|glad|love|fantastic|perfect|joy|excited|awesome|beautiful)\b/.test(t) || (txt.match(/!/g)||[]).length >= 1) return 'happy';
+  return 'neutral';
+}
+
+function setExpression(emotion) {
+  const bl = document.getElementById('brow-l');
+  const br = document.getElementById('brow-r');
+  const cl = document.getElementById('blush-l');
+  const cr = document.getElementById('blush-r');
+  if (!bl) return;
+  bl.style.transition = br.style.transition = 'transform 0.4s ease';
+  switch (emotion) {
+    case 'happy':
+      bl.style.transform = 'translateY(-3px)';
+      br.style.transform = 'translateY(-3px)';
+      if (cl) { cl.style.opacity = '0.24'; cr.style.opacity = '0.24'; }
+      break;
+    case 'surprised':
+      bl.style.transform = 'translateY(-7px)';
+      br.style.transform = 'translateY(-7px)';
+      if (cl) { cl.style.opacity = '0.18'; cr.style.opacity = '0.18'; }
+      break;
+    case 'concerned':
+      bl.style.transform = 'translateY(2px) rotate(5deg)';
+      br.style.transform = 'translateY(2px) rotate(-5deg)';
+      if (cl) { cl.style.opacity = '0.07'; cr.style.opacity = '0.07'; }
+      break;
+    default:
+      bl.style.transform = ''; br.style.transform = '';
+      if (cl) { cl.style.opacity = '0.13'; cr.style.opacity = '0.13'; }
+  }
+  setTimeout(() => {
+    bl.style.transform = ''; br.style.transform = '';
+    if (cl) { cl.style.opacity = '0.13'; cr.style.opacity = '0.13'; }
+  }, 5000);
+}
+
 function toggleSpeak() {
   S.voiceEnabled = !S.voiceEnabled;
   localStorage.setItem('aria_voice', S.voiceEnabled ? 'on' : 'off');
   document.getElementById('speak-toggle').className = S.voiceEnabled ? 'on' : '';
-  if (!S.voiceEnabled) window.speechSynthesis.cancel();
+  if (!S.voiceEnabled) { window.speechSynthesis.cancel(); clearInterval(S.talkingInterval); setMouth(0); }
 }
 
-// ── ASR ──
-let recognition = null;
+// ── ASR + Push-to-Talk ──
+let recognition  = null;
+let micAnalyser  = null;
+let micRafId     = null;
+let pttHeld      = false;
+let pttTapMs     = 0;
+let pttAccum     = '';
+
+function setupMicButton() {
+  const btn = document.getElementById('mic-btn');
+  document.getElementById('transcript-cancel').addEventListener('click', cancelListening);
+
+  const onDown = e => {
+    e.preventDefault();
+    if (S.listening) return; // already on — release/tap will handle stop
+    pttHeld  = true;
+    pttTapMs = Date.now();
+    startListening();
+  };
+  const onUp = e => {
+    e.preventDefault();
+    if (!pttHeld) {
+      // Was already listening in toggle mode — send now
+      if (S.listening) finishListening();
+      return;
+    }
+    const held = Date.now() - pttTapMs;
+    pttHeld = false;
+    if (held < 280) {
+      // Quick tap → stay in toggle mode, wait for another tap to send
+    } else {
+      // Hold released → stop recognition, send
+      try { if (recognition) recognition.stop(); } catch(e) {}
+    }
+  };
+  const onLeave = () => {
+    if (pttHeld) { pttHeld = false; try { if (recognition) recognition.stop(); } catch(e) {} }
+  };
+
+  btn.addEventListener('mousedown',  onDown,  { passive:false });
+  btn.addEventListener('mouseup',    onUp,    { passive:false });
+  btn.addEventListener('mouseleave', onLeave);
+  btn.addEventListener('touchstart', onDown,  { passive:false });
+  btn.addEventListener('touchend',   onUp,    { passive:false });
+
+  // Spacebar push-to-talk
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && document.activeElement !== document.getElementById('text-input')) {
+      if (!S.listening) { e.preventDefault(); pttHeld = true; pttTapMs = Date.now(); startListening(); }
+    }
+    if (e.key === 'Escape' && S.listening) cancelListening();
+  });
+  document.addEventListener('keyup', e => {
+    if (e.code === 'Space' && pttHeld) {
+      e.preventDefault(); pttHeld = false;
+      try { if (recognition) recognition.stop(); } catch(e) {}
+    }
+  });
+}
+
 function setupASR() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const r = new SR();
-  r.continuous = false; r.interimResults = true; r.lang = 'en-US';
+  r.continuous = true; r.interimResults = true; r.lang = 'en-US';
   r.onresult = e => {
-    let t = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-    document.getElementById('text-input').value = t;
-    autoResize(document.getElementById('text-input'));
-    if (e.results[e.results.length - 1].isFinal) { stopListening(); if (t.trim()) sendMessage(); }
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) pttAccum += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    const display = (pttAccum + interim).trim();
+    const el = document.getElementById('transcript-text');
+    el.textContent = display || 'Listening…';
+    el.className   = display ? '' : 'placeholder';
   };
-  r.onerror = r.onend = () => { if (S.listening) stopListening(); };
+  r.onerror = e => {
+    const el = document.getElementById('transcript-text');
+    if (e.error === 'not-allowed') {
+      el.textContent = 'Microphone permission denied — check browser settings.';
+      el.className = '';
+      setTimeout(() => stopListening(false), 2000);
+    } else {
+      stopListening(false);
+    }
+  };
+  r.onend = () => {
+    if (!S.listening) return;
+    if (pttHeld) {
+      try { r.start(); } catch(e) {} // still held — restart
+    } else {
+      finishListening();
+    }
+  };
   return r;
 }
-function toggleMic() {
-  if (S.listening) { stopListening(); return; }
+
+async function startListening() {
+  if (S.listening) return;
   if (!recognition) recognition = setupASR();
-  if (!recognition) { addMsg('assistant','Speech recognition needs Chrome.'); return; }
+  if (!recognition) { addMsg('assistant','Speech recognition needs Chrome or Edge.'); return; }
   window.speechSynthesis.cancel();
   S.listening = true;
+  pttAccum    = '';
+  const el    = document.getElementById('transcript-text');
+  el.textContent = 'Listening…'; el.className = 'placeholder';
   document.getElementById('mic-btn').classList.add('listening');
+  document.getElementById('transcript-overlay').classList.add('active');
   playGesture('listening');
-  try { recognition.start(); } catch(e) { stopListening(); }
+  setupMicVisualizer().then(startMicLevel);
+  try { recognition.start(); } catch(e) { stopListening(false); }
 }
-function stopListening() {
+
+function finishListening() {
+  const text = pttAccum.trim();
+  pttAccum = '';
+  stopListening(false);
+  if (text) {
+    document.getElementById('text-input').value = text;
+    autoResize(document.getElementById('text-input'));
+    sendMessage();
+  }
+}
+
+function stopListening(doFinish = false) {
+  if (doFinish && S.listening) { finishListening(); return; }
   S.listening = false;
+  pttHeld     = false;
   document.getElementById('mic-btn').classList.remove('listening');
+  document.getElementById('mic-btn').style.boxShadow = '';
+  document.getElementById('transcript-overlay').classList.remove('active');
+  cancelAnimationFrame(micRafId);
   playGesture('idle');
   try { if (recognition) recognition.stop(); } catch(e) {}
+}
+
+function cancelListening() { pttAccum = ''; stopListening(false); }
+
+async function setupMicVisualizer() {
+  if (micAnalyser) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    const an  = ctx.createAnalyser();
+    an.fftSize = 256; an.smoothingTimeConstant = 0.82;
+    src.connect(an); // not connected to destination — no echo
+    micAnalyser = an;
+  } catch(e) { /* visualizer unavailable, degrades gracefully */ }
+}
+
+function startMicLevel() {
+  if (!micAnalyser) return;
+  const fd  = new Uint8Array(micAnalyser.frequencyBinCount);
+  const btn = document.getElementById('mic-btn');
+  function frame() {
+    if (!S.listening) { btn.style.boxShadow = ''; return; }
+    micAnalyser.getByteFrequencyData(fd);
+    const level = (fd[1]+fd[2]+fd[3]+fd[4]+fd[5]) / 5 / 255;
+    const sz    = Math.round(4 + level * 20);
+    const a     = (0.35 + level * 0.55).toFixed(2);
+    btn.style.boxShadow = `0 0 ${sz}px rgba(255,68,68,${a}), 0 0 ${sz*2}px rgba(255,68,68,${+a*0.4})`;
+    micRafId = requestAnimationFrame(frame);
+  }
+  frame();
 }
 
 // ── Chat ──
@@ -908,31 +1185,28 @@ async function sendMessage() {
   addMsg('user', txt);
   S.messages.push({ role:'user', content:txt });
 
-  // Local gesture triggers
-  const lower = txt.toLowerCase();
-  if (lower.includes('wave') || lower.includes('hello') || lower.includes('hi')) {
-    playGesture('wave'); setTimeout(() => {}, 100);
-  } else if (lower.includes('point') || lower.includes('look at') || lower.includes('here')) {
-    playGesture('point');
-  } else if (lower.includes('walk') || lower.includes('come here') || lower.includes('move')) {
-    playGesture('walk', 3000);
-  } else {
-    playGesture('thinking');
-  }
+  playGesture('thinking');
 
   const tid = showTyping();
   try {
     const reply = await callClaude(txt);
     removeTyping(tid);
-    addMsg('assistant', reply);
-    S.messages.push({ role:'assistant', content:reply });
-    // Pick gesture based on first word of reply
-    const rLow = reply.toLowerCase();
-    if (rLow.match(/^(hello|hi|hey|greetings)/)) {
+    const { gesture, clean } = parseGesture(reply);
+    addMsg('assistant', clean);
+    S.messages.push({ role:'assistant', content:clean });
+    const spoken = clean.replace(/\*\*/g,'').replace(/#{1,3} /g,'').slice(0,500);
+    setExpression(detectEmotion(clean));
+    if (gesture === 'wave') {
       playGesture('wave');
-      setTimeout(() => speakText(reply.replace(/\*\*/g,'').replace(/#{1,3} /g,'').slice(0,400)), 200);
+      setTimeout(() => speakText(spoken), 200);
+    } else if (gesture === 'point') {
+      playGesture('point');
+      speakText(spoken);
+    } else if (clean.toLowerCase().match(/^(hello|hi|hey|greetings)/)) {
+      playGesture('wave');
+      setTimeout(() => speakText(spoken), 200);
     } else {
-      speakText(reply.replace(/\*\*/g,'').replace(/#{1,3} /g,'').slice(0,400));
+      speakText(spoken);
     }
   } catch(err) {
     removeTyping(tid);
@@ -941,12 +1215,38 @@ async function sendMessage() {
   }
 }
 
+function parseGesture(text) {
+  const match = text.match(/\[(wave|point|think)\]/i);
+  const gesture = match ? match[1].toLowerCase() : null;
+  const clean = text.replace(/\[(wave|point|think)\]/gi, '').replace(/  +/g, ' ').trim();
+  return { gesture, clean };
+}
+
 async function callClaude(userText) {
   if (!S.apiKey) throw new Error('Please enter your Anthropic API key above.');
   const appUrl = document.getElementById('url-input')?.value || '';
-  const sys = `You are Aria, a warm, articulate AI companion shown as a life-like avatar. You speak naturally — warm, direct, never robotic. Help with questions, research, and guiding users through web apps step by step.${appUrl ? `\n\nActive app: ${appUrl}. When guiding, name exact UI elements.` : ''}
+  const sys = `You are Aria — a warm, brilliant AI companion brought to life as an animated avatar. You stand on a softly lit stage with dark hair, violet eyes, and a deep navy outfit.
 
-Keep answers concise (2–4 sentences for simple questions). If you're greeting the user, start with "Hello!" or "Hi!".`;
+PERSONALITY
+Speak like a knowledgeable friend: direct, warm, curious, never robotic. Use contractions and natural speech. Show genuine enthusiasm. Be honest even when that means saying "I'm not sure." Never be sycophantic — don't open with "Great question!" or "Certainly!" or "Of course!".
+
+GESTURES
+You can trigger one physical animation per response by placing exactly one tag in your text at the natural moment:
+• [wave] — greeting the user or saying goodbye
+• [point] — drawing attention to something specific
+• [think] — pausing thoughtfully before a complex answer
+Only use a tag when it genuinely fits. Most responses need no tag.
+
+RESPONSE STYLE
+• Casual / conversational → 1–3 sentences, prose
+• Factual / research → 3–6 sentences, no markdown headers
+• Step-by-step tasks → numbered steps are fine
+• No bullet lists for casual chat — flowing prose only
+• Speak as if out loud: minimal bold, no headers in conversational replies
+• Keep spoken sentences short and clear — you will be read aloud
+
+KNOWLEDGE
+You have broad knowledge of the world: science, history, culture, technology, art, and current events through your training cutoff. Reason carefully. When uncertain, say so and think it through.${appUrl ? `\n\nACTIVE APP: ${appUrl} — when guiding, name exact UI elements and steps clearly.` : ''}`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -957,9 +1257,9 @@ Keep answers concise (2–4 sentences for simple questions). If you're greeting 
       'anthropic-dangerous-direct-browser-calls':'true',
     },
     body: JSON.stringify({
-      model:'claude-sonnet-4-6', max_tokens:512,
+      model:'claude-sonnet-4-6', max_tokens:1024,
       system: sys,
-      messages: S.messages.slice(-12),
+      messages: S.messages.slice(-20),
     }),
   });
   if (!res.ok) {
