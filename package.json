@@ -1,0 +1,19 @@
+{
+  "name": "kane-avatar",
+  "version": "0.1.0",
+  "description": "Kane — a life-like, proactive 3D AI companion avatar, embeddable in any app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1",
+    "vite": "^8.1.3"
+  }
+}
