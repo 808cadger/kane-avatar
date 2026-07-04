@@ -4,15 +4,17 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const CLOCK = new THREE.Clock();
 
 export class KaneViewer {
-  constructor(container, { onStatus } = {}) {
+  constructor(container, { onStatus, transparent = false, showFloor = true } = {}) {
     this.container = container;
     this.onStatus = onStatus || (() => {});
     this.root = null; // top-level Object3D of the loaded/placeholder avatar
     this.mixer = null;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0b0b12);
-    this.scene.fog = new THREE.Fog(0x0b0b12, 4, 12);
+    if (!transparent) {
+      this.scene.background = new THREE.Color(0x0b0b12);
+      this.scene.fog = new THREE.Fog(0x0b0b12, 4, 12);
+    }
 
     this.camera = new THREE.PerspectiveCamera(
       32, container.clientWidth / container.clientHeight, 0.1, 100
@@ -20,7 +22,8 @@ export class KaneViewer {
     this.camera.position.set(0, 1.55, 2.6);
     this.camera.lookAt(0, 1.5, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: transparent });
+    if (transparent) this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -30,7 +33,7 @@ export class KaneViewer {
     container.appendChild(this.renderer.domElement);
 
     this._buildLighting();
-    this._buildFloor();
+    if (showFloor) this._buildFloor();
 
     window.addEventListener('resize', () => this._onResize());
     this._onResize();

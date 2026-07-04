@@ -7,56 +7,9 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; background: #0b0b12; overflow: hidden; }
-  #kane-stage { position: fixed; inset: 0; }
-  #kane-stage canvas { display: block; }
-  #kane-hud {
-    position: fixed; top: 16px; left: 16px; z-index: 10;
-    font: 12px/1.4 system-ui, sans-serif; color: #8a8aa8;
-    letter-spacing: 1px; text-transform: uppercase;
-  }
-  #kane-status {
-    position: fixed; bottom: 16px; left: 16px; z-index: 10;
-    font: 12px system-ui, sans-serif; color: #6a6a88;
-  }
-
-  #kane-bar {
-    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
-    z-index: 20; width: min(560px, 92vw);
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-  }
-  #kane-caption {
-    max-width: 100%; text-align: center; color: #f0f0fa;
-    font: 15px/1.5 system-ui, sans-serif; text-shadow: 0 2px 12px rgba(0,0,0,.8);
-    opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .25s ease;
-    pointer-events: none;
-  }
-  #kane-caption.visible { opacity: 1; transform: translateY(0); }
-  #kane-inputrow {
-    width: 100%; display: flex; align-items: center; gap: 8px;
-    background: rgba(20,20,32,.72); backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,.08); border-radius: 26px; padding: 6px 8px;
-  }
-  #kane-mic {
-    width: 38px; height: 38px; border-radius: 50%; border: none; flex-shrink: 0;
-    background: rgba(255,255,255,.08); color: #cfcfe6; font-size: 15px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; transition: background .15s;
-  }
-  #kane-mic.active { background: #ff4444; color: #fff; }
-  #kane-input {
-    flex: 1; background: transparent; border: none; outline: none;
-    color: #f0f0fa; font: 14px system-ui, sans-serif; padding: 8px 4px;
-  }
-  #kane-input::placeholder { color: #6a6a88; }
-  #kane-send {
-    width: 38px; height: 38px; border-radius: 50%; border: none; flex-shrink: 0;
-    background: #6c63ff; color: #fff; font-size: 15px; cursor: pointer;
-  }
 </style>
 </head>
 <body>
-  <div id="kane-stage"></div>
-  <div id="kane-hud">Kane · AI Companion</div>
-  <div id="kane-status">loading…</div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
