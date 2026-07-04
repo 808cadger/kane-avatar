@@ -10,7 +10,11 @@ const STYLE_ID = 'kane-styles';
 const CSS = `
 #kane-root { position: fixed; z-index: 2147483000; font-family: system-ui, sans-serif; }
 #kane-root.mode-fullpage { inset: 0; }
-#kane-root.mode-corner { right: 18px; bottom: 18px; width: 220px; height: 320px; }
+#kane-root.mode-corner { width: 220px; height: 320px; }
+#kane-root.mode-corner.pos-bottom-right { right: 18px; bottom: 18px; }
+#kane-root.mode-corner.pos-bottom-left { left: 18px; bottom: 18px; }
+#kane-root.mode-corner.pos-top-right { right: 18px; top: 18px; }
+#kane-root.mode-corner.pos-top-left { left: 18px; top: 18px; }
 #kane-root .kane-stage { position: absolute; inset: 0; }
 #kane-root.mode-corner .kane-stage { pointer-events: none; }
 #kane-root .kane-stage canvas { display: block; }
@@ -73,10 +77,10 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-function buildDom(mode) {
+function buildDom(mode, position) {
   const root = document.createElement('div');
   root.id = 'kane-root';
-  root.className = `mode-${mode}`;
+  root.className = `mode-${mode} pos-${position}`;
   root.innerHTML = `
     <div class="kane-stage"></div>
     <div class="kane-hud">Kane · AI Companion</div>
@@ -105,12 +109,13 @@ function stripMarkdown(text) {
  *
  * @param {object} opts
  * @param {'fullpage'|'corner'} [opts.mode='corner']
+ * @param {'bottom-right'|'bottom-left'|'top-right'|'top-left'} [opts.position='bottom-right'] - corner mode only; use when Kane's default spot collides with host page content
  * @param {string} opts.backendUrl
  * @param {string} [opts.modelUrl] - glTF/GLB URL; falls back to a placeholder avatar if omitted
  */
-export function mountKane({ mode = 'corner', backendUrl, modelUrl } = {}) {
+export function mountKane({ mode = 'corner', position = 'bottom-right', backendUrl, modelUrl } = {}) {
   injectStyles();
-  const root = buildDom(mode);
+  const root = buildDom(mode, position);
 
   const stage = root.querySelector('.kane-stage');
   const statusEl = root.querySelector('.kane-debug-status');

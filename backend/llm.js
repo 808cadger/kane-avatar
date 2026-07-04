@@ -15,13 +15,13 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
  * @param {(name:string, input:object) => Promise<string>} opts.executeTool
  * @returns {Promise<string>} final assistant text
  */
-export async function converse({ system, history, tools = [], executeTool, maxTurns = 3 }) {
-  if (PROVIDER === 'anthropic') return converseAnthropic({ system, history, tools, executeTool, maxTurns });
-  return converseOllama({ system, history, tools, executeTool, maxTurns });
+export async function converse({ system, history, tools = [], executeTool, maxTurns = 3, model }) {
+  if (PROVIDER === 'anthropic') return converseAnthropic({ system, history, tools, executeTool, maxTurns, model: model || MODEL });
+  return converseOllama({ system, history, tools, executeTool, maxTurns, model: model || MODEL });
 }
 
 // ── Ollama (default, local, free) ──
-async function converseOllama({ system, history, tools, executeTool, maxTurns }) {
+async function converseOllama({ system, history, tools, executeTool, maxTurns, model }) {
   const messages = [{ role: 'system', content: system }, ...history];
   const toolsPayload = tools.map((t) => ({
     type: 'function',
@@ -32,7 +32,7 @@ async function converseOllama({ system, history, tools, executeTool, maxTurns })
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages, tools: toolsPayload, stream: false }),
+      body: JSON.stringify({ model, messages, tools: toolsPayload, stream: false }),
     });
     if (!res.ok) throw new Error(`Ollama error ${res.status}: ${await res.text()}`);
     const json = await res.json();
@@ -52,7 +52,7 @@ async function converseOllama({ system, history, tools, executeTool, maxTurns })
 }
 
 // ── Anthropic (optional, paid, higher quality) ──
-async function converseAnthropic({ system, history, tools, executeTool, maxTurns }) {
+async function converseAnthropic({ system, history, tools, executeTool, maxTurns, model }) {
   if (!ANTHROPIC_KEY) throw new Error('Server missing ANTHROPIC_API_KEY');
   let messages = history.map((m) => ({ role: m.role, content: m.content }));
   const toolsPayload = tools.map((t) => ({
@@ -67,7 +67,7 @@ async function converseAnthropic({ system, history, tools, executeTool, maxTurns
         'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1024, system, messages, tools: toolsPayload }),
+      body: JSON.stringify({ model, max_tokens: 1024, system, messages, tools: toolsPayload }),
     });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));

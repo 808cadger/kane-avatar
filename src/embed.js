@@ -15,6 +15,7 @@ import { mountKane } from './kane-mount.js';
   ready(() => {
     window.Kane = mountKane({
       mode: ds.mode || 'corner',
+      position: ds.position || 'bottom-right',
       backendUrl: ds.backend || 'http://127.0.0.1:8787',
       modelUrl: ds.model || undefined,
     });
