@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aria — AI Companion</title>
+<title>Kane — AI Companion</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -223,7 +223,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
 <div id="avatar-panel">
   <div id="stage-bg"></div>
   <div id="stage-floor"></div>
-  <div id="avatar-name">ARIA · AI COMPANION</div>
+  <div id="avatar-name">KANE · AI COMPANION</div>
 
   <div id="avatar-svg-wrap">
     <svg id="avatar-svg" viewBox="0 0 400 700" width="300" height="525"
@@ -616,7 +616,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
         <div class="message assistant">
           <div class="msg-avatar">✨</div>
           <div class="msg-bubble">
-            Hi! I'm Aria. I can chat, answer questions, or switch to <strong>App Guide</strong> mode to walk you through any web app step by step.
+            Hi! I'm Kane. I can chat, answer questions, or switch to <strong>App Guide</strong> mode to walk you through any web app step by step.
           </div>
         </div>
       </div>
@@ -630,7 +630,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
         <div id="no-app-placeholder">
           <div class="icon">🖥️</div>
           <div>Enter a URL above to load an app</div>
-          <div style="font-size:12px;margin-top:4px">Then ask Aria to guide you through it</div>
+          <div style="font-size:12px;margin-top:4px">Then ask Kane to guide you through it</div>
         </div>
         <iframe id="app-frame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
       </div>
@@ -645,7 +645,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
       </div>
     </div>
     <button id="mic-btn" title="Hold to speak (or hold Space)">🎤</button>
-    <textarea id="text-input" rows="1" placeholder="Ask Aria anything…"
+    <textarea id="text-input" rows="1" placeholder="Ask Kane anything…"
               onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
     <div id="tts-controls">
       <span id="voice-label">Voice</span>
@@ -659,8 +659,8 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:'S
 <script>
 // ── State ──
 const S = {
-  apiKey:    localStorage.getItem('aria_key')    || '',
-  elevenKey: localStorage.getItem('aria_el_key') || '',
+  apiKey:    localStorage.getItem('kane_key')    || '',
+  elevenKey: localStorage.getItem('kane_el_key') || '',
   mode: 'chat', speaking: false, listening: false,
   voiceEnabled: true, talkingInterval: null,
   messages: [], currentGesture: null,
@@ -670,7 +670,7 @@ const S = {
 document.addEventListener('DOMContentLoaded', () => {
   if (S.apiKey)    document.getElementById('api-key-input').value = '•'.repeat(20);
   if (S.elevenKey) document.getElementById('el-key-input').value  = '•'.repeat(20);
-  S.voiceEnabled = localStorage.getItem('aria_voice') !== 'off';
+  S.voiceEnabled = localStorage.getItem('kane_voice') !== 'off';
   document.getElementById('speak-toggle').className = S.voiceEnabled ? 'on' : '';
   startBlinkLoop();
   startEyeTracking();
@@ -678,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     playGesture('wave');
     if (S.voiceEnabled) {
-      setTimeout(() => speakText("Hi! I'm Aria. How can I help you today?"), 400);
+      setTimeout(() => speakText("Hi! I'm Kane. How can I help you today?"), 400);
     }
   }, 600);
 });
@@ -688,7 +688,7 @@ function saveKey() {
   const v = document.getElementById('api-key-input').value.trim();
   if (v && !v.startsWith('•')) {
     S.apiKey = v;
-    localStorage.setItem('aria_key', v);
+    localStorage.setItem('kane_key', v);
     document.getElementById('api-key-input').value = '•'.repeat(20);
     showStatus('Key saved ✓');
   }
@@ -697,7 +697,7 @@ function saveElKey() {
   const v = document.getElementById('el-key-input').value.trim();
   if (v && !v.startsWith('•')) {
     S.elevenKey = v;
-    localStorage.setItem('aria_el_key', v);
+    localStorage.setItem('kane_el_key', v);
     document.getElementById('el-key-input').value = '•'.repeat(20);
     showStatus('Voice key saved ✓');
   }
@@ -1001,7 +1001,7 @@ function setExpression(emotion) {
 
 function toggleSpeak() {
   S.voiceEnabled = !S.voiceEnabled;
-  localStorage.setItem('aria_voice', S.voiceEnabled ? 'on' : 'off');
+  localStorage.setItem('kane_voice', S.voiceEnabled ? 'on' : 'off');
   document.getElementById('speak-toggle').className = S.voiceEnabled ? 'on' : '';
   if (!S.voiceEnabled) { window.speechSynthesis.cancel(); clearInterval(S.talkingInterval); setMouth(0); }
 }
@@ -1225,7 +1225,7 @@ function parseGesture(text) {
 async function callClaude(userText) {
   if (!S.apiKey) throw new Error('Please enter your Anthropic API key above.');
   const appUrl = document.getElementById('url-input')?.value || '';
-  const sys = `You are Aria — a warm, brilliant AI companion brought to life as an animated avatar. You stand on a softly lit stage with dark hair, violet eyes, and a deep navy outfit.
+  const sys = `You are Kane — a warm, brilliant AI companion brought to life as an animated avatar. You stand on a softly lit stage with dark hair, violet eyes, and a deep navy outfit.
 
 PERSONALITY
 Speak like a knowledgeable friend: direct, warm, curious, never robotic. Use contractions and natural speech. Show genuine enthusiasm. Be honest even when that means saying "I'm not sure." Never be sycophantic — don't open with "Great question!" or "Certainly!" or "Of course!".
