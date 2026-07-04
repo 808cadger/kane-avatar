@@ -3,6 +3,8 @@ import { KaneAnimator } from './kane-animator.js';
 import { KaneEngine } from './kane-engine.js';
 import { KaneVoice } from './kane-voice.js';
 import { mountKaneUI } from './kane-ui.js';
+import { KaneTelemetry } from './kane-telemetry.js';
+import { KaneDecisionEngine } from './kane-decision.js';
 
 const statusEl = document.getElementById('kane-status');
 const setStatus = (msg) => { statusEl.textContent = msg; };
@@ -18,6 +20,7 @@ else viewer.usePlaceholder();
 const animator = new KaneAnimator(viewer);
 const engine = new KaneEngine({ backendUrl: params.get('backend') || 'http://127.0.0.1:8787' });
 const voice = new KaneVoice({ onMouthLevel: (l) => animator.setMouthLevel(l) });
+const telemetry = new KaneTelemetry();
 
 const ui = mountKaneUI({
   onSend: handleUserMessage,
@@ -40,24 +43,52 @@ const ui = mountKaneUI({
   },
 });
 
+// Local models sometimes answer in markdown; captions are spoken aloud, so strip formatting.
+function stripMarkdown(text) {
+  return text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/[*_`]/g, '').replace(/^#{1,6}\s*/gm, '').trim();
+}
+
+/** Speaks + animates a reply, whether it came from a direct question or a proactive nudge. */
+function presentReply({ reply }) {
+  const clean = stripMarkdown(reply);
+  setStatus('speaking…');
+  ui.setCaption(clean);
+  animator.setState('talking');
+  decision.setPaused(true);
+  voice.speak(clean, {
+    onEnd: () => {
+      animator.setState('idle');
+      setStatus('ready');
+      ui.setCaption('');
+      decision.setPaused(false);
+    },
+  });
+}
+
 async function handleUserMessage(text) {
   ui.setCaption('');
   setStatus('thinking…');
   animator.setState('thinking');
+  decision.setPaused(true);
   try {
-    const { reply } = await engine.send(text);
-    setStatus('speaking…');
-    ui.setCaption(reply);
-    animator.setState('talking');
-    voice.speak(reply, {
-      onEnd: () => { animator.setState('idle'); setStatus('ready'); ui.setCaption(''); },
-    });
+    const result = await engine.send(text);
+    presentReply(result);
   } catch (err) {
+    decision.setPaused(false);
     animator.setState('idle');
     setStatus('error');
     ui.setCaption(err.message);
   }
 }
 
-// Manual test hooks for the console.
-window.Kane = { viewer, animator, engine, voice, ui };
+const decision = new KaneDecisionEngine({
+  telemetry, engine,
+  onNudge: (result) => presentReply(result),
+});
+
+// Public API for host apps: <script> loads this, then calls window.Kane.notify(...)
+// to describe screens, flows, and progress so the decision layer can react.
+window.Kane = {
+  viewer, animator, engine, voice, ui, telemetry, decision,
+  notify: (type, payload) => telemetry.notify(type, payload),
+};
