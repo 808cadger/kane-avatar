@@ -1,0 +1,19 @@
+{
+  "name": "kane-backend",
+  "version": "0.1.0",
+  "description": "Kane conversation engine — chat, tool calling, cross-session memory",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

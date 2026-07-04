@@ -11,6 +11,7 @@ export class KaneAnimator {
     this.blinkTimer = randomBlinkDelay();
     this.blinkPhase = 0; // 0 = open, ramps to 1 (closed) and back
     this.idleT = 0;
+    this.state = 'idle'; // 'idle' | 'thinking' | 'talking'
 
     window.addEventListener('pointermove', (e) => {
       this.pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -22,6 +23,9 @@ export class KaneAnimator {
 
   /** Feed 0..1 mouth-open energy, e.g. from a TTS audio analyser. */
   setMouthLevel(level) { this.mouthLevel = Math.max(0, Math.min(1, level)); }
+
+  /** 'idle' | 'thinking' | 'talking' — drives subtle posture cues beyond mouth/blink/gaze. */
+  setState(state) { this.state = state; }
 
   update(dt) {
     this.idleT += dt;
@@ -61,13 +65,14 @@ export class KaneAnimator {
     const breathe = Math.sin(this.idleT * 1.4) * 0.01;
     const sway = Math.sin(this.idleT * 0.7) * 0.015;
 
+    const thinkTilt = this.state === 'thinking' ? Math.sin(this.idleT * 2.2) * 0.06 - 0.08 : 0;
     const head = this.viewer.bones?.head;
     if (head) {
-      head.rotation.y = this.pointer.x * 0.35 + sway;
+      head.rotation.y = this.pointer.x * 0.35 + sway + thinkTilt;
       head.rotation.x = -this.pointer.y * 0.2 + breathe;
     } else if (this.viewer.root?.userData.isPlaceholder) {
       const { head: h } = this.viewer.root.userData.parts;
-      h.rotation.y = this.pointer.x * 0.35 + sway;
+      h.rotation.y = this.pointer.x * 0.35 + sway + thinkTilt;
       h.rotation.x = -this.pointer.y * 0.2 + breathe;
     }
 
