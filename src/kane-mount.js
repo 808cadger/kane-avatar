@@ -15,6 +15,7 @@ const CSS = `
 #kane-root.mode-corner.pos-bottom-left { left: 18px; bottom: 18px; }
 #kane-root.mode-corner.pos-top-right { right: 18px; top: 18px; }
 #kane-root.mode-corner.pos-top-left { left: 18px; top: 18px; }
+#kane-root.mode-inline { position: absolute; inset: 0; z-index: 1; }
 #kane-root .kane-stage { position: absolute; inset: 0; }
 #kane-root.mode-corner .kane-stage { pointer-events: none; }
 #kane-root .kane-stage canvas { display: block; }
@@ -22,12 +23,12 @@ const CSS = `
   position: absolute; top: 16px; left: 16px; font: 12px/1.4 system-ui, sans-serif;
   color: #8a8aa8; letter-spacing: 1px; text-transform: uppercase; pointer-events: none;
 }
-#kane-root.mode-corner .kane-hud { display: none; }
+#kane-root.mode-corner .kane-hud, #kane-root.mode-inline .kane-hud { display: none; }
 #kane-root .kane-debug-status {
   position: absolute; bottom: 4px; left: 4px; font: 11px system-ui, sans-serif; color: #6a6a88;
   pointer-events: none;
 }
-#kane-root.mode-corner .kane-debug-status { display: none; }
+#kane-root.mode-corner .kane-debug-status, #kane-root.mode-inline .kane-debug-status { display: none; }
 
 #kane-root .kane-bar {
   position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
@@ -77,7 +78,7 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-function buildDom(mode, position) {
+function buildDom(mode, position, container, chatUI) {
   const root = document.createElement('div');
   root.id = 'kane-root';
   root.className = `mode-${mode} pos-${position}`;
@@ -85,6 +86,7 @@ function buildDom(mode, position) {
     <div class="kane-stage"></div>
     <div class="kane-hud">Kane · AI Companion</div>
     <div class="kane-debug-status">loading…</div>
+    ${chatUI ? `
     <div class="kane-bar">
       <div class="kane-caption"></div>
       <div class="kane-inputrow">
@@ -92,9 +94,16 @@ function buildDom(mode, position) {
         <input class="kane-input" type="text" placeholder="Ask Kane anything…" autocomplete="off" />
         <button class="kane-send" title="Send">➤</button>
       </div>
-    </div>
+    </div>` : ''}
   `;
-  document.body.appendChild(root);
+  if (container) {
+    // Inline mode is positioned absolute-to-container — the container needs to be
+    // a positioning context of its own, or the canvas escapes to the page's corner.
+    if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+    container.appendChild(root);
+  } else {
+    document.body.appendChild(root);
+  }
   return root;
 }
 
@@ -108,14 +117,19 @@ function stripMarkdown(text) {
  * a chat surface, and window.Kane.notify(...) for telemetry — no host markup required.
  *
  * @param {object} opts
- * @param {'fullpage'|'corner'} [opts.mode='corner']
+ * @param {'fullpage'|'corner'|'inline'} [opts.mode='corner'] - 'inline' fills opts.container instead of floating over the viewport
  * @param {'bottom-right'|'bottom-left'|'top-right'|'top-left'} [opts.position='bottom-right'] - corner mode only; use when Kane's default spot collides with host page content
+ * @param {HTMLElement} [opts.container] - required for 'inline' mode; Kane's canvas fills this element instead of document.body
+ * @param {boolean} [opts.chatUI=true] - set false when the host page has its own chat/voice UI and just wants the avatar + engine handles (see the returned `sendMessage`)
  * @param {string} opts.backendUrl
  * @param {string} [opts.modelUrl] - glTF/GLB URL; falls back to a placeholder avatar if omitted
  */
-export function mountKane({ mode = 'corner', position = 'bottom-right', backendUrl, modelUrl } = {}) {
+export function mountKane({ mode = 'corner', position = 'bottom-right', container, chatUI = true, backendUrl, modelUrl } = {}) {
   injectStyles();
-  const root = buildDom(mode, position);
+  const root = buildDom(mode, position, container, chatUI);
+  // Lets a host page's CSS hide its own static placeholder avatar once Kane's real
+  // canvas is actually in the DOM, without the library needing to know that markup.
+  if (container) container.classList.add('kane-mounted');
 
   const stage = root.querySelector('.kane-stage');
   const statusEl = root.querySelector('.kane-debug-status');
@@ -126,6 +140,7 @@ export function mountKane({ mode = 'corner', position = 'bottom-right', backendU
 
   const setStatus = (msg) => { statusEl.textContent = msg; };
   const setCaption = (text) => {
+    if (!captionEl) return;
     captionEl.textContent = text || '';
     captionEl.classList.toggle('visible', !!text);
   };
@@ -179,40 +194,45 @@ export function mountKane({ mode = 'corner', position = 'bottom-right', backendU
 
   const decision = new KaneDecisionEngine({ telemetry, engine, onNudge: presentReply });
 
-  const doSend = () => {
-    const text = inputEl.value.trim();
-    if (!text) return;
-    inputEl.value = '';
-    handleUserMessage(text);
-  };
-  sendEl.addEventListener('click', doSend);
-  inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSend(); });
+  if (chatUI) {
+    const doSend = () => {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      inputEl.value = '';
+      handleUserMessage(text);
+    };
+    sendEl.addEventListener('click', doSend);
+    inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSend(); });
 
-  let held = false;
-  const startMic = (e) => {
-    e.preventDefault();
-    if (!voice.supportsSTT()) { setStatus('speech recognition needs Chrome/Edge'); return; }
-    held = true;
-    micEl.classList.add('active');
-    animator.setState('idle');
-    voice.startListening({
-      onResult: (text) => { inputEl.value = text; },
-      onEnd: (finalText) => {
-        micEl.classList.remove('active');
-        inputEl.value = '';
-        if (finalText) handleUserMessage(finalText);
-      },
-    });
-  };
-  const stopMic = () => { if (held) { held = false; voice.stopListening(); } };
-  micEl.addEventListener('mousedown', startMic);
-  micEl.addEventListener('touchstart', startMic, { passive: false });
-  micEl.addEventListener('mouseup', stopMic);
-  micEl.addEventListener('mouseleave', stopMic);
-  micEl.addEventListener('touchend', stopMic);
+    let held = false;
+    const startMic = (e) => {
+      e.preventDefault();
+      if (!voice.supportsSTT()) { setStatus('speech recognition needs Chrome/Edge'); return; }
+      held = true;
+      micEl.classList.add('active');
+      animator.setState('idle');
+      voice.startListening({
+        onResult: (text) => { inputEl.value = text; },
+        onEnd: (finalText) => {
+          micEl.classList.remove('active');
+          inputEl.value = '';
+          if (finalText) handleUserMessage(finalText);
+        },
+      });
+    };
+    const stopMic = () => { if (held) { held = false; voice.stopListening(); } };
+    micEl.addEventListener('mousedown', startMic);
+    micEl.addEventListener('touchstart', startMic, { passive: false });
+    micEl.addEventListener('mouseup', stopMic);
+    micEl.addEventListener('mouseleave', stopMic);
+    micEl.addEventListener('touchend', stopMic);
+  }
 
   return {
     root, viewer, animator, engine, voice, telemetry, decision,
     notify: (type, payload) => telemetry.notify(type, payload),
+    // For chatUI:false hosts driving their own UI — runs the same think→speak→lipsync
+    // pipeline handleUserMessage does internally, just without touching input-row DOM.
+    sendMessage: handleUserMessage,
   };
 }

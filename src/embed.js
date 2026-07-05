@@ -13,9 +13,12 @@ import { mountKane } from './kane-mount.js';
   }
 
   ready(() => {
+    const container = ds.container ? document.getElementById(ds.container) : undefined;
     window.Kane = mountKane({
-      mode: ds.mode || 'corner',
+      mode: ds.mode || (container ? 'inline' : 'corner'),
       position: ds.position || 'bottom-right',
+      container,
+      chatUI: ds.chatUi !== 'false',
       backendUrl: ds.backend || 'http://127.0.0.1:8787',
       modelUrl: ds.model || undefined,
     });
