@@ -137,11 +137,17 @@ export function mountKane({ mode = 'corner', position = 'bottom-right', backendU
 
   const animator = new KaneAnimator(viewer);
   const engine = new KaneEngine({ backendUrl });
-  const voice = new KaneVoice({ onMouthLevel: (l) => animator.setMouthLevel(l) });
+  const voice = new KaneVoice({ onViseme: (name, weight) => animator.setViseme(name, weight) });
   const telemetry = new KaneTelemetry();
 
-  function presentReply({ reply }) {
+  function presentReply({ reply, highlight }) {
     const clean = stripMarkdown(reply);
+    // Ignore any name the LLM didn't copy exactly from the manifest we gave it —
+    // Python's registry lookup already guards this too, but failing silently
+    // client-side as well means a bad name never even reaches the bridge call.
+    if (highlight && window.kaneBridge && window.kaneHighlightableElements?.some((e) => e.name === highlight)) {
+      window.kaneBridge.highlight_element(highlight);
+    }
     setStatus('speaking…');
     setCaption(clean);
     animator.setState('talking');
@@ -162,7 +168,7 @@ export function mountKane({ mode = 'corner', position = 'bottom-right', backendU
     animator.setState('thinking');
     decision.setPaused(true);
     try {
-      presentReply(await engine.send(text));
+      presentReply(await engine.send(text, undefined, window.kaneHighlightableElements));
     } catch (err) {
       decision.setPaused(false);
       animator.setState('idle');

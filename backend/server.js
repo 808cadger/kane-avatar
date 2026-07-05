@@ -31,19 +31,19 @@ function extractFactInBackground(sessionId, message) {
 }
 
 app.post('/chat', async (req, res) => {
-  const { sessionId, message, context } = req.body || {};
+  const { sessionId, message, context, elements } = req.body || {};
   if (!sessionId || !message) return res.status(400).json({ error: 'sessionId and message are required' });
 
   try {
     appendMessage(sessionId, 'user', message);
     const facts = getFacts(sessionId);
-    const system = systemPrompt(facts, context);
+    const system = systemPrompt(facts, context, elements);
     const history = getHistory(sessionId, 20).map((m) => ({ role: m.role, content: m.content }));
 
     const finalText = await converse({ system, history });
 
     appendMessage(sessionId, 'assistant', finalText);
-    res.json(finalizeReply(finalText));
+    res.json(finalizeReply(finalText, elements));
     extractFactInBackground(sessionId, message);
   } catch (err) {
     console.error('Kane /chat error:', err);

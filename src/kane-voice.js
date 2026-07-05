@@ -1,42 +1,115 @@
+// Crude letter->viseme classifier (Oculus/ARKit 15-shape set — matches the
+// `viseme_*` morph names Avaturn T2 exports use directly). Not real phonetics,
+// just enough to make consecutive words look distinct instead of one repeating flap.
+const VISEME_DIGRAPH = { th: 'TH', ch: 'CH', sh: 'CH', ph: 'FF', ng: 'kk', wh: 'U' };
+const VISEME_SINGLE = {
+  a: 'aa', e: 'E', i: 'I', o: 'O', u: 'U', y: 'I', w: 'U',
+  p: 'PP', b: 'PP', m: 'PP',
+  f: 'FF', v: 'FF',
+  t: 'DD', d: 'DD', l: 'DD',
+  n: 'nn',
+  k: 'kk', g: 'kk', c: 'kk', q: 'kk', x: 'kk',
+  s: 'SS', z: 'SS',
+  r: 'RR',
+};
+
+function wordToVisemes(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g, '');
+  if (!w) return ['sil'];
+  const seq = [];
+  let i = 0;
+  while (i < w.length) {
+    const two = w.slice(i, i + 2);
+    const digraph = VISEME_DIGRAPH[two];
+    const v = digraph || VISEME_SINGLE[w[i]];
+    if (v && v !== seq[seq.length - 1]) seq.push(v);
+    i += digraph ? 2 : 1;
+  }
+  return seq.length ? seq : ['aa'];
+}
+
+function splitWords(text) {
+  const words = [];
+  const re = /\S+/g;
+  let m;
+  while ((m = re.exec(text))) words.push({ text: m[0], start: m.index });
+  return words;
+}
+
 /**
  * Browser-native speech in/out — zero API keys, zero cost. Swap in a cloud
  * TTS/STT provider later without touching callers (same speak/startListening surface).
  */
 export class KaneVoice {
-  constructor({ onMouthLevel, onListeningChange } = {}) {
-    this.onMouthLevel = onMouthLevel || (() => {});
+  constructor({ onViseme, onListeningChange } = {}) {
+    this.onViseme = onViseme || (() => {});
     this.onListeningChange = onListeningChange || (() => {});
     this.enabled = true;
     this._talkInterval = null;
+    this._visemeTimer = null;
     this.recognition = null;
   }
 
   speak(text, { onStart, onEnd } = {}) {
     if (!this.enabled || !text) { onEnd?.(); return; }
     window.speechSynthesis.cancel();
+    clearTimeout(this._visemeTimer);
+    clearInterval(this._talkInterval);
     const u = new SpeechSynthesisUtterance(text);
     const voices = window.speechSynthesis.getVoices();
     const pref = voices.find((v) => v.lang.startsWith('en') && v.localService)
       || voices.find((v) => v.lang.startsWith('en'));
     if (pref) u.voice = pref;
     u.rate = 1.0; u.pitch = 1.0;
-    u.onstart = () => { onStart?.(); this._startFakeLipSync(); };
-    u.onend = u.onerror = () => { this._stopFakeLipSync(); onEnd?.(); };
+
+    const words = splitWords(text);
+    let boundaryFired = false;
+    u.onboundary = (e) => {
+      if (e.name && e.name !== 'word') return; // ignore sentence-level boundaries
+      boundaryFired = true;
+      const word = words.find((w) => w.start === e.charIndex) || words.find((w) => w.start >= e.charIndex);
+      if (word) this._animateWord(word.text);
+    };
+    u.onstart = () => {
+      onStart?.();
+      // Some voices/browsers never fire 'boundary' at all — fall back to generic
+      // chatter rather than leaving the mouth frozen shut for the whole reply.
+      setTimeout(() => { if (!boundaryFired) this._startFallbackChatter(); }, 250);
+    };
+    u.onend = u.onerror = () => { this._stopMouth(); onEnd?.(); };
     window.speechSynthesis.speak(u);
   }
 
-  _startFakeLipSync() {
-    let m = 0;
+  /** Steps through a word's viseme sequence in real time, timed to fit before the next boundary. */
+  _animateWord(word) {
+    clearTimeout(this._visemeTimer);
     clearInterval(this._talkInterval);
-    this._talkInterval = setInterval(() => {
-      m = (m + 1) % 4;
-      this.onMouthLevel([0, 0.7, 1, 0.4][m]);
-    }, 110);
+    const visemes = wordToVisemes(word);
+    const stepMs = Math.max(140, Math.min(650, word.length * 65)) / visemes.length;
+    let i = 0;
+    const advance = () => {
+      if (i >= visemes.length) return;
+      this.onViseme(visemes[i], 1);
+      i += 1;
+      this._visemeTimer = setTimeout(advance, stepMs);
+    };
+    advance();
   }
 
-  _stopFakeLipSync() {
+  _startFallbackChatter() {
+    const shapes = ['aa', 'E', 'PP', 'O'];
+    let i = 0;
     clearInterval(this._talkInterval);
-    this.onMouthLevel(0);
+    this._talkInterval = setInterval(() => {
+      this.onViseme(shapes[i % shapes.length], 0.6 + Math.random() * 0.4);
+      i += 1;
+    }, 130);
+  }
+
+  _stopMouth() {
+    clearTimeout(this._visemeTimer);
+    clearInterval(this._talkInterval);
+    this.onViseme('sil', 0);
   }
 
   supportsSTT() { return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }

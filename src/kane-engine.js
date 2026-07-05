@@ -41,8 +41,8 @@ export class KaneEngine {
     return res.json();
   }
 
-  send(message, context) {
-    return this._post('/chat', { sessionId: this.sessionId, message, context }); // { reply, gesture }
+  send(message, context, elements) {
+    return this._post('/chat', { sessionId: this.sessionId, message, context, elements }); // { reply, gesture, highlight }
   }
 
   /** Kane speaks on its own initiative; context describes the situation, not a user message. */

@@ -1,4 +1,4 @@
-export function systemPrompt(facts, context) {
+export function systemPrompt(facts, context, elements) {
   return `You are Kane — a warm, sharp AI companion embodied as a real-time 3D avatar standing beside the user in whatever app they're using.
 
 PERSONALITY
@@ -9,7 +9,11 @@ Trigger at most one physical animation per response by placing exactly one tag a
 
 ${facts.length ? `MEMORY\nThings you already know about this user from past conversations:\n${facts.map((f) => `- ${f}`).join('\n')}` : ''}
 ${context ? `\nCURRENT SITUATION: ${context}` : ''}
-
+${elements && elements.length ? `
+POINTING AT THINGS
+You're embedded in a real app with clickable controls. If — and only if — pointing at one would genuinely help right now, put its exact name in brackets by itself, the same style as the gesture tags above: [exact_name]. Copy exact_name character-for-character from this list; never invent, guess, or alter one. Most replies need no such tag — only use one when the user is asking how to do something one of these controls does.
+${elements.map((e) => `- ${e.name}: ${e.label}`).join('\n')}
+` : ''}
 RESPONSE STYLE
 Casual chat: 1-3 sentences, flowing prose, no headers or bullet lists. Keep sentences short — you'll be read aloud via TTS, so never use emoji, markdown, or other symbols that can't be spoken.`;
 }
@@ -19,13 +23,26 @@ Casual chat: 1-3 sentences, flowing prose, no headers or bullet lists. Keep sent
 // a TTS voice can't pronounce them and they'd otherwise get spoken as silence or garbage.
 const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
 
-export function finalizeReply(text) {
-  const match = text.match(/\[(wave|point|think)\]/i);
-  const gesture = match ? match[1].toLowerCase() : null;
-  const clean = text
-    .replace(/\[(wave|point|think)\]/gi, '')
-    .replace(EMOJI_RE, '')
-    .replace(/ {2,}/g, ' ')
-    .trim();
-  return { reply: clean, gesture };
+export function finalizeReply(text, elements) {
+  const gestureMatch = text.match(/\[(wave|point|think)\]/i);
+  const gesture = gestureMatch ? gestureMatch[1].toLowerCase() : null;
+  let clean = text.replace(/\[(wave|point|think)\]/gi, '');
+
+  // Small local models drift on exact marker syntax turn to turn (observed: asked
+  // for [[highlight:name]], got a bare [name] matching the nearby gesture-tag style
+  // instead) — rather than fight that, accept any bracketed token and validate it
+  // against the real element list. A bogus/hallucinated name is silently dropped,
+  // same "don't trust an unvalidated string" rule the Python side already applies.
+  let highlight = null;
+  if (elements && elements.length) {
+    const validNames = new Set(elements.map((e) => e.name));
+    const bracketMatch = clean.match(/\[+(?:highlight:)?([a-zA-Z0-9_]+)\]+/i);
+    if (bracketMatch && validNames.has(bracketMatch[1])) {
+      highlight = bracketMatch[1];
+      clean = clean.replace(bracketMatch[0], '');
+    }
+  }
+
+  clean = clean.replace(EMOJI_RE, '').replace(/ {2,}/g, ' ').trim();
+  return { reply: clean, gesture, highlight };
 }
