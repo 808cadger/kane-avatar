@@ -1,7 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
 const CLOCK = new THREE.Clock();
+
+// VRM's standardized bone/expression names, bridged onto the same generic keys the
+// animator already expects from the older raw-glTF (Ready Player Me-style) path.
+const VRM_BONE_KEYS = { head: 'head', neck: 'neck', spine: 'spine', hips: 'hips', lefteye: 'leftEye', righteye: 'rightEye' };
 
 export class KaneViewer {
   constructor(container, { onStatus, transparent = false, showFloor = true } = {}) {
@@ -69,18 +74,29 @@ export class KaneViewer {
     this.scene.add(floor);
   }
 
-  /** Load a rigged glTF/GLB avatar. Falls back to a placeholder if it fails. */
+/** Load a rigged glTF/GLB or VRM avatar. Falls back to a placeholder if it fails. */
   async loadModel(url) {
     this.onStatus(`loading model…`);
     const loader = new GLTFLoader();
+    loader.register((parser) => new VRMLoaderPlugin(parser));
     try {
       const gltf = await loader.loadAsync(url);
-      this._setRoot(gltf.scene, gltf.animations);
+      const vrm = gltf.userData.vrm;
+      if (vrm) {
+        VRMUtils.removeUnnecessaryVertices(gltf.scene);
+        VRMUtils.rotateVRM0(vrm); // no-op for VRM 1.0, fixes the 180° facing on older VRM 0.x exports
+        this.vrm = vrm;
+        this._setRoot(vrm.scene, gltf.animations, vrm);
+      } else {
+        this.vrm = null;
+        this._setRoot(gltf.scene, gltf.animations);
+      }
       this.onStatus('model loaded');
       return gltf;
     } catch (err) {
       console.error('Kane: failed to load model', err);
       this.onStatus('model load failed — using placeholder');
+      this.vrm = null;
       this._setRoot(buildPlaceholder(), []);
       return null;
     }
@@ -91,7 +107,7 @@ export class KaneViewer {
     this.onStatus('placeholder avatar (no model loaded yet)');
   }
 
-  _setRoot(object3D, animations) {
+  _setRoot(object3D, animations, vrm) {
     if (this.root) this.scene.remove(this.root);
     this.root = object3D;
     this.root.traverse((n) => {
@@ -100,9 +116,22 @@ export class KaneViewer {
     this.scene.add(this.root);
     this.mixer = animations && animations.length ? new THREE.AnimationMixer(this.root) : null;
 
-    // Collect capability info for the animator layer.
     this.bones = {};
     this.morphMeshes = [];
+
+    if (vrm) {
+      // VRM exposes standardized bone/expression access instead of raw names —
+      // use that directly rather than guessing at bone names like the path below.
+      for (const [key, vrmName] of Object.entries(VRM_BONE_KEYS)) {
+        const bone = vrm.humanoid?.getNormalizedBoneNode(vrmName);
+        if (bone) this.bones[key] = bone;
+      }
+      console.info('Kane viewer: VRM loaded, bones', Object.keys(this.bones),
+        'expressions', vrm.expressionManager?.expressions?.map((e) => e.expressionName) || []);
+      return;
+    }
+
+    // Raw glTF path (e.g. an older locally-stored Ready Player Me export) — search by name.
     this.root.traverse((n) => {
       if (n.isBone || n.isObject3D) {
         const name = (n.name || '').toLowerCase();
@@ -129,6 +158,7 @@ export class KaneViewer {
   _tick() {
     const dt = CLOCK.getDelta();
     if (this.mixer) this.mixer.update(dt);
+    if (this.vrm) this.vrm.update(dt);
     if (this._onFrame) this._onFrame(dt);
     this.renderer.render(this.scene, this.camera);
   }

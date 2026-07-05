@@ -146,9 +146,15 @@ Both scripts warm up each model once, then run repeated trials and print a pass/
 
 ## Avatar model
 
-Kane's viewer (`kane-viewer.js`) loads a rigged glTF/GLB and looks for standard bone names (`Head`, `LeftEye`, `RightEye`, ...) and morph targets (ARKit-style `eyeBlinkLeft`, `mouthOpen`, etc.) for gaze, blink, and lip sync. Until a real model is supplied it falls back to a simple placeholder humanoid so the whole pipeline is testable.
+**Ready Player Me — originally planned for this — was acquired by Netflix and shut down its public service on 2026-01-31.** `models.readyplayer.me` and even `docs.readyplayer.me` return NXDOMAIN globally now; this isn't fixable or workaroundable, the service is gone. Any tutorial or example referencing `models.readyplayer.me/*.glb` is stale.
 
-To use a real model: generate one at Ready Player Me (free, ~2 minutes) and pass its `.glb` URL via `?model=` (demo) or `modelUrl` (`mountKane()` / `data-model` on the embed script tag).
+Kane now uses **VRM** instead (via `@pixiv/three-vrm`) — a glTF-based avatar format with standardized humanoid bones and facial expressions, free to create with VRoid Studio, and not tied to a single company's API staying alive. `kane-viewer.js` auto-detects VRM (`gltf.userData.vrm` after registering `VRMLoaderPlugin`) and uses `vrm.humanoid.getNormalizedBoneNode(...)` / `vrm.expressionManager.setValue(...)` for bones and expressions — no name-guessing needed, unlike the fallback path below.
+
+A raw rigged glTF/GLB path still exists as a fallback (`kane-viewer.js`'s non-VRM branch) for e.g. an already-downloaded RPM export sitting on disk from before the shutdown — it searches for bone names (`Head`, `LeftEye`, `RightEye`, ...) and morph targets (`eyeBlinkLeft`, `mouthOpen`, etc.) by substring match, which is inherently less reliable than VRM's standardized access.
+
+Until a real model is supplied, both paths fall back to a simple placeholder humanoid so the whole pipeline (gaze, blink, lip sync) is testable without one.
+
+To use a real model: create one in VRoid Studio (free), export as `.vrm`, and pass its URL via `?model=` (demo) or `modelUrl` (`mountKane()` / `data-model` on the embed script tag). Note the embed bundle is now ~766KB (up from ~620KB) with `@pixiv/three-vrm` included.
 
 ## Sandbox integration
 

@@ -50,9 +50,12 @@ export class KaneAnimator {
       : this.blinkPhase <= 1 ? this.blinkPhase
       : 2 - this.blinkPhase;
 
-    this._setMorph('eyeBlinkLeft', closed);
-    this._setMorph('eyeBlinkRight', closed);
-    this._setMorph('eyesClosed', closed);
+    const vrmHandled = this._setExpression('blink', closed);
+    if (!vrmHandled) {
+      this._setMorph('eyeBlinkLeft', closed);
+      this._setMorph('eyeBlinkRight', closed);
+      this._setMorph('eyesClosed', closed);
+    }
 
     if (this.viewer.root?.userData.isPlaceholder) {
       const { eyeL, eyeR } = this.viewer.root.userData.parts;
@@ -83,7 +86,9 @@ export class KaneAnimator {
 
   _updateMouth() {
     const v = this.mouthLevel;
-    const wrote = this._setMorph('mouthOpen', v) | this._setMorph('jawOpen', v);
+    // 'aa' is VRM's open-mouth "ah" viseme — a reasonable single-viseme stand-in for
+    // generic audio-energy-driven lip sync, same approach as mouthOpen/jawOpen below.
+    const wrote = this._setExpression('aa', v) | this._setMorph('mouthOpen', v) | this._setMorph('jawOpen', v);
     if (!wrote && this.viewer.root?.userData.isPlaceholder) {
       const { mouth } = this.viewer.root.userData.parts;
       mouth.scale.y = 1 + v * 6;
@@ -101,6 +106,14 @@ export class KaneAnimator {
       }
     }
     return found;
+  }
+
+  /** Sets a VRM expression preset by name (e.g. 'blink', 'aa'). Returns true if this is a VRM model. */
+  _setExpression(name, value) {
+    const manager = this.viewer.vrm?.expressionManager;
+    if (!manager) return false;
+    manager.setValue(name, value);
+    return true;
   }
 }
 
