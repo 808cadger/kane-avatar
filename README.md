@@ -56,6 +56,16 @@ That's it — Kane injects its own DOM/CSS and mounts as a transparent-backgroun
 
 **`data-position`**: `bottom-right` (default) | `bottom-left` | `top-right` | `top-left`. Use this if Kane's default spot collides with the host app's own UI — this happened in real testing (see [Sandbox integration](#sandbox-integration)).
 
+### If the host app has a Content-Security-Policy
+
+Kane's chat is completely silent — with no error visible in the UI beyond a generic "can't reach backend" message — if the host page's CSP `connect-src` doesn't whitelist Kane's backend origin. This is not optional: **any host app with a CSP must add the backend's origin to `connect-src`**, e.g.:
+
+```
+connect-src 'self' https://your-kane-backend.example.com;
+```
+
+This was found the hard way: an earlier "successful" sandbox integration test only exercised `Kane.notify()` (pure JS, no network) and never actually drove a real `/chat` call through the host page — the CSP block was silently there the whole time. `KaneEngine` now throws a message naming this as the likely cause when a raw network failure occurs, but it still can't fix the host's CSP for it.
+
 ### Telemetry API
 
 Host apps report what's happening via one function:
@@ -145,6 +155,7 @@ To use a real model: generate one at Ready Player Me (free, ~2 minutes) and pass
 `/home/cadger/glowai-kane-sandbox` is a throwaway copy of a real app's frontend used to prove Kane embeds cleanly without touching production. Findings from that test:
 
 - Kane's default `bottom-right` position overlapped the host app's own UI in that specific layout — this is exactly why `data-position` exists. Don't assume the default corner is safe for every host; check and override if needed.
+- The host app's CSP blocked every real backend call (`connect-src` didn't list Kane's backend origin) — chat and nudges were silently broken the whole time despite an earlier test appearing to pass, because that test never actually drove a real network call through the host page. Fixed in the sandbox by adding the backend origin to `connect-src`; see [above](#if-the-host-app-has-a-content-security-policy). Confirmed working with a real `/chat` and `/nudge` call executed from inside the host page after the fix.
 - The host app's own heavy JS (large ML bundles, service workers) made headless browser testing flaky/crash-prone. Verify real integrations in an actual browser, not headless automation.
 
 ## Known limitations
