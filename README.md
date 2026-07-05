@@ -156,6 +156,12 @@ Until a real model is supplied, both paths fall back to a simple placeholder hum
 
 To use a real model: create one in VRoid Studio (free), export as `.vrm`, and pass its URL via `?model=` (demo) or `modelUrl` (`mountKane()` / `data-model` on the embed script tag). Note the embed bundle is now ~766KB (up from ~620KB) with `@pixiv/three-vrm` included.
 
+### Current model: Avaturn T1 (stopgap)
+
+The demo's current default (`public/kane-avatar.glb`, gitignored — large binary, not committed) is an **Avaturn** export (another RPM-style avatar service), specifically their **T1** body type. Avaturn distinguishes T1 (static face, realistic, lightweight) from **T2** (separate eyeballs + ARKit blendshapes/visemes, needed for facial animation) — T1 was downloaded by mistake and has zero morph targets and no eye bones, so **blink and lip sync don't work with it**; only head-turn gaze tracking does, since a `Head` bone exists. This is explicitly a temporary stand-in pending a proper T2 export or a VRM model — swap it by changing the default in `src/main.js` or just using `?model=`.
+
+Fetching or inspecting any new avatar file: don't assume it has facial animation data just because it loads without errors — parse the GLB's JSON chunk first (12-byte header, then the first chunk is JSON; see the inline Python snippet used during development) and check `meshes[*].primitives[*].targets` and node names for eye bones before wiring it in and expecting blink/lip sync to work.
+
 ## Sandbox integration
 
 `/home/cadger/glowai-kane-sandbox` is a throwaway copy of a real app's frontend used to prove Kane embeds cleanly without touching production. Findings from that test:
@@ -170,6 +176,7 @@ Some PWAs cache static JS with a stale-while-revalidate strategy (GlowAI's does,
 
 ## Known limitations
 
-- No real 3D avatar model wired in yet — still the placeholder.
+- Real avatar model is in, but it's a stopgap: Avaturn T1 export has no facial animation data at all (no blink, no lip sync) — see [Current model](#current-model-avaturn-t1-stopgap).
+- Procedural gaze tracking overwrites the model's own idle-animation head motion each frame (both target the same `Head` bone) instead of blending with it — not broken, just not smooth.
 - Conversational latency on CPU-only Ollama varies a lot (observed 1-8s) depending on what else is running on the same Ollama instance concurrently; there's no GPU acceleration configured here.
 - The Anthropic provider path (`KANE_PROVIDER=anthropic`) exists and is wired up, but hasn't been validated against a funded account — the key used during development returned a "credit balance too low" error, not an auth error, so the integration itself is confirmed correct.
