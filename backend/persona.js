@@ -11,7 +11,7 @@ ${facts.length ? `MEMORY\nThings you already know about this user from past conv
 ${context ? `\nCURRENT SITUATION: ${context}` : ''}
 
 RESPONSE STYLE
-Casual chat: 1-3 sentences, flowing prose, no headers or bullet lists. Keep sentences short — you'll be read aloud via TTS.`;
+Casual chat: 1-3 sentences, flowing prose, no headers or bullet lists. Keep sentences short — you'll be read aloud via TTS, so never use emoji, markdown, or other symbols that can't be spoken.`;
 }
 
 export function finalizeReply(text) {
