@@ -87,6 +87,11 @@ export class KaneViewer {
         VRMUtils.rotateVRM0(vrm); // no-op for VRM 1.0, fixes the 180° facing on older VRM 0.x exports
         this.vrm = vrm;
         this._setRoot(vrm.scene, gltf.animations, vrm);
+        // Plain VRoid/VRM exports usually ship with zero animation clips (unlike some
+        // Avaturn exports, which include their own idle clip) — without one, the rig
+        // just sits in its raw T-pose bind position, which reads as broken rather
+        // than idle. Bend the arms down to a relaxed default instead.
+        if (!gltf.animations.length) this._applyRestPose(vrm);
       } else {
         this.vrm = null;
         this._setRoot(gltf.scene, gltf.animations);
@@ -105,6 +110,19 @@ export class KaneViewer {
   usePlaceholder() {
     this._setRoot(buildPlaceholder(), []);
     this.onStatus('placeholder avatar (no model loaded yet)');
+  }
+
+  /** Bends VRM humanoid arm bones down from the raw T-pose bind position into a
+   * relaxed standing default — a one-time pose, not an animation. */
+  _applyRestPose(vrm) {
+    const bend = (boneName, x, z) => {
+      const bone = vrm.humanoid?.getNormalizedBoneNode(boneName);
+      if (bone) bone.rotation.set(x, 0, z);
+    };
+    bend('leftUpperArm', 0, 1.2);
+    bend('leftLowerArm', 0, 0.15);
+    bend('rightUpperArm', 0, -1.2);
+    bend('rightLowerArm', 0, -0.15);
   }
 
   _setRoot(object3D, animations, vrm) {
