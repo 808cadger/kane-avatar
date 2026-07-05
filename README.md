@@ -158,6 +158,10 @@ To use a real model: generate one at Ready Player Me (free, ~2 minutes) and pass
 - The host app's CSP blocked every real backend call (`connect-src` didn't list Kane's backend origin) — chat and nudges were silently broken the whole time despite an earlier test appearing to pass, because that test never actually drove a real network call through the host page. Fixed in the sandbox by adding the backend origin to `connect-src`; see [above](#if-the-host-app-has-a-content-security-policy). Confirmed working with a real `/chat` and `/nudge` call executed from inside the host page after the fix.
 - The host app's own heavy JS (large ML bundles, service workers) made headless browser testing flaky/crash-prone. Verify real integrations in an actual browser, not headless automation.
 
+### If the host app is a PWA with a service worker
+
+Some PWAs cache static JS with a stale-while-revalidate strategy (GlowAI's does, for any `.js`/`.css` path). That means after you update `dist/kane.js` on a host that already has an old copy cached, a returning user's *first* load still serves the stale cached version — the service worker fetches the update in the background for next time, so it takes two loads before a fix actually lands for that user. Not something Kane's code can control; if this matters, ask the host to exclude Kane's bundle from long-lived static-asset caching, or serve it from a versioned/hashed filename.
+
 ## Known limitations
 
 - No real 3D avatar model wired in yet — still the placeholder.
