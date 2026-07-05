@@ -115,6 +115,11 @@ export class KaneViewer {
     });
     this.scene.add(this.root);
     this.mixer = animations && animations.length ? new THREE.AnimationMixer(this.root) : null;
+    if (this.mixer) {
+      // Play the model's own idle/rest clip if it has one — without this the rig just
+      // sits in its raw bind pose (usually an unnatural T-pose with arms out).
+      this.mixer.clipAction(animations[0]).play();
+    }
 
     this.bones = {};
     this.morphMeshes = [];
