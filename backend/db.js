@@ -42,10 +42,26 @@ export function getFacts(sessionId) {
     .map((r) => r.fact);
 }
 
+// Keeps the MEMORY block in the system prompt from growing unbounded over a
+// long-running session — once a session hits the cap, the oldest fact is
+// dropped to make room for the newest one.
+const MAX_FACTS_PER_SESSION = 30;
+
 export function addFact(sessionId, fact) {
+  const duplicate = db.prepare(
+    `SELECT 1 FROM facts WHERE session_id = ? AND fact = ? COLLATE NOCASE`
+  ).get(sessionId, fact);
+  if (duplicate) return;
+
   db.prepare(
     `INSERT INTO facts (session_id, fact, created_at) VALUES (?, ?, ?)`
   ).run(sessionId, fact, Date.now());
+
+  db.prepare(`
+    DELETE FROM facts WHERE session_id = ? AND id NOT IN (
+      SELECT id FROM facts WHERE session_id = ? ORDER BY id DESC LIMIT ?
+    )
+  `).run(sessionId, sessionId, MAX_FACTS_PER_SESSION);
 }
 
 export default db;
