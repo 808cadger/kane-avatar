@@ -140,6 +140,7 @@ export class KaneViewer {
     }
 
     this.bones = {};
+    this.boneRest = {}; // each bone's authored rest rotation — gaze/idle motion offsets from this, not from zero
     this.morphMeshes = [];
 
     if (vrm) {
@@ -147,7 +148,7 @@ export class KaneViewer {
       // use that directly rather than guessing at bone names like the path below.
       for (const [key, vrmName] of Object.entries(VRM_BONE_KEYS)) {
         const bone = vrm.humanoid?.getNormalizedBoneNode(vrmName);
-        if (bone) this.bones[key] = bone;
+        if (bone) { this.bones[key] = bone; this.boneRest[key] = bone.rotation.clone(); }
       }
       console.info('Kane viewer: VRM loaded, bones', Object.keys(this.bones),
         'expressions', vrm.expressionManager?.expressions?.map((e) => e.expressionName) || []);
@@ -155,11 +156,18 @@ export class KaneViewer {
     }
 
     // Raw glTF path (e.g. an older locally-stored Ready Player Me export) — search by name.
+    // Unlike VRM's normalized humanoid bones, a raw rig's rest-pose local rotation is
+    // whatever its source tool authored (rarely identity — e.g. Auto-Rig Pro-style rigs
+    // carry per-bone roll/twist), so procedural gaze/idle motion below is applied relative
+    // to boneRest rather than overwriting rotation to an absolute value.
     this.root.traverse((n) => {
       if (n.isBone || n.isObject3D) {
         const name = (n.name || '').toLowerCase();
         for (const key of ['head', 'neck', 'spine', 'lefteye', 'righteye', 'hips']) {
-          if (name === key || name.includes(key)) this.bones[key] = this.bones[key] || n;
+          if ((name === key || name.includes(key)) && !this.bones[key]) {
+            this.bones[key] = n;
+            this.boneRest[key] = n.rotation.clone();
+          }
         }
       }
       if (n.isMesh && n.morphTargetDictionary) this.morphMeshes.push(n);

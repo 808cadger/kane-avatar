@@ -84,12 +84,20 @@ export class KaneAnimator {
     const thinkTilt = this.state === 'thinking' ? Math.sin(this.idleT * 2.2) * 0.06 - 0.08 : 0;
     const head = this.viewer.bones?.head;
     if (head) {
-      head.rotation.y = this.pointer.x * 0.35 + sway + thinkTilt;
-      head.rotation.x = -this.pointer.y * 0.2 + breathe;
+      const rest = this.viewer.boneRest?.head;
+      head.rotation.y = (rest?.y || 0) + this.pointer.x * 0.35 + sway + thinkTilt;
+      head.rotation.x = (rest?.x || 0) - this.pointer.y * 0.2 + breathe;
     } else if (this.viewer.root?.userData.isPlaceholder) {
       const { head: h } = this.viewer.root.userData.parts;
       h.rotation.y = this.pointer.x * 0.35 + sway + thinkTilt;
       h.rotation.x = -this.pointer.y * 0.2 + breathe;
+    }
+
+    const spine = this.viewer.bones?.spine;
+    if (spine) {
+      const spineRest = this.viewer.boneRest?.spine;
+      spine.rotation.x = (spineRest?.x || 0) + breathe * 1.5;
+      spine.rotation.z = (spineRest?.z || 0) + sway * 0.4;
     }
 
     if (this.viewer.root && !head) {

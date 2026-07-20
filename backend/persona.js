@@ -23,10 +23,21 @@ Casual chat: 1-3 sentences, flowing prose, no headers or bullet lists. Keep sent
 // a TTS voice can't pronounce them and they'd otherwise get spoken as silence or garbage.
 const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
 
+// Small local models sometimes drop the brackets around a leading gesture tag —
+// observed as e.g. "wave So nice to meet you!" instead of "[wave] So nice to
+// meet you!" — leaking the raw word into the spoken/displayed reply. A lowercase
+// gesture word glued directly onto a capitalized sentence start is never
+// legitimate English, so that shape (and only that shape, to avoid mangling a
+// real reply that happens to start with "Think" or "Point") is treated as a
+// leaked tag too.
+const LEAKED_GESTURE_RE = /^(wave|point|think)\b[ \t]+(?=[A-Z])/;
+
 export function finalizeReply(text, elements) {
-  const gestureMatch = text.match(/\[(wave|point|think)\]/i);
+  const bracketed = text.match(/\[(wave|point|think)\]/i);
+  const leaked = !bracketed && text.match(LEAKED_GESTURE_RE);
+  const gestureMatch = bracketed || leaked;
   const gesture = gestureMatch ? gestureMatch[1].toLowerCase() : null;
-  let clean = text.replace(/\[(wave|point|think)\]/gi, '');
+  let clean = text.replace(/\[(wave|point|think)\]/gi, '').replace(LEAKED_GESTURE_RE, '');
 
   // Small local models drift on exact marker syntax turn to turn (observed: asked
   // for [[highlight:name]], got a bare [name] matching the nearby gesture-tag style
