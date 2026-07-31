@@ -24,5 +24,17 @@ export async function extractFact(userMessage, { model }) {
   if (!res.ok) throw new Error(`Ollama error ${res.status}: ${await res.text()}`);
   const json = await res.json();
   const text = (json.message?.content || '').trim();
-  return text && text.toUpperCase() !== 'NONE' ? text.replace(/^"|"$/g, '') : null;
+  if (!text || text.toUpperCase() === 'NONE') return null;
+  const fact = text.replace(/^"|"$/g, '');
+
+  // The extraction model is small (0.5b) and occasionally hallucinates instead of
+  // following the "one short third-person sentence" instruction -- observed on
+  // messages that named no one: bare invented words ("Alice", "Kai") or it echoing
+  // the prompt's own meta-language back ("The user's own name.", "NAME: User.").
+  // A real extracted fact reads as a multi-word sentence; reject anything that
+  // doesn't clear that bar rather than trust it into the user's permanent memory.
+  const wordCount = fact.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 3 || /^(NAME|USER)\s*:/i.test(fact)) return null;
+
+  return fact;
 }

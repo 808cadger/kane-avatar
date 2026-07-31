@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
-const CLOCK = new THREE.Clock();
+const TIMER = new THREE.Timer();
 
 // VRM's standardized bone/expression names, bridged onto the same generic keys the
 // animator already expects from the older raw-glTF (Ready Player Me-style) path.
@@ -169,6 +169,32 @@ export class KaneViewer {
             this.boneRest[key] = n.rotation.clone();
           }
         }
+        // Arms: side-specific, and need "forearm" checked before "arm" -- both this rig's
+        // naming (Auto-Rig Pro: "arm_stretch.l" / "forearm_stretch.l") and Ready Player
+        // Me/Mixamo-style ("leftArm" / "leftForeArm") embed "arm" inside "forearm", so a
+        // plain substring match on "arm" alone would wrongly grab the forearm bone too.
+        // The glTF export also strips dots from names ("arm_stretch.l" -> "arm_stretchl"),
+        // so alongside the underscored/dotted/word forms, fall back to a bare trailing
+        // l/r -- safe here since we only reach this check once the name already matched
+        // "arm" or "forearm" below, so it's not matching against arbitrary bone names.
+        const side = name.includes('left') || name.endsWith('.l') || name.endsWith('_l') ? 'L'
+          : name.includes('right') || name.endsWith('.r') || name.endsWith('_r') ? 'R'
+          : name.endsWith('l') ? 'L'
+          : name.endsWith('r') ? 'R'
+          : null;
+        // Auto-Rig Pro also has secondary corrective bones like "c_arm_twist_offset.r"
+        // that contain "arm" too but aren't the main swing joint and come earlier in
+        // traversal order -- without this exclusion the first-match-wins logic below
+        // grabbed the twist-offset helper instead of the real "arm_stretch" bone (caught
+        // by testing: rotating it produced a correct-looking rotation.y value with zero
+        // visible effect on the mesh, since it wasn't actually the bone driving the skin).
+        if (side && !name.includes('twist') && !name.includes('offset')) {
+          const limbKey = name.includes('forearm') ? 'forearm' + side : name.includes('arm') ? 'arm' + side : null;
+          if (limbKey && !this.bones[limbKey]) {
+            this.bones[limbKey] = n;
+            this.boneRest[limbKey] = n.rotation.clone();
+          }
+        }
       }
       if (n.isMesh && n.morphTargetDictionary) this.morphMeshes.push(n);
     });
@@ -186,8 +212,9 @@ export class KaneViewer {
     this.renderer.setSize(w, h);
   }
 
-  _tick() {
-    const dt = CLOCK.getDelta();
+  _tick(t) {
+    TIMER.update(t);
+    const dt = TIMER.getDelta();
     if (this.mixer) this.mixer.update(dt);
     if (this.vrm) this.vrm.update(dt);
     if (this._onFrame) this._onFrame(dt);

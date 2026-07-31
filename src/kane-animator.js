@@ -10,6 +10,18 @@ const VISEME_AMPLITUDE = {
 // VRM only has these 5 viseme-like expression presets (no per-consonant shapes).
 const VRM_EXPRESSION_FOR_VISEME = { aa: 'aa', I: 'ih', U: 'ou', E: 'ee', O: 'oh' };
 
+// This rig's arm/forearm bones are mirrored: the same *positive* rotation.y reads as
+// "raise" on the right arm but "lower" on the left (confirmed empirically by rotating
+// each bone in isolation — rotation.x/z are roll axes and invisible on a cylindrical
+// limb, rotation.y is the only one that actually swings the arm). This sign map lets
+// callers think in side-agnostic "raise" terms instead of memorizing per-side signs.
+const ARM_SIDE_SIGN = { L: -1, R: 1 };
+// Gesture tags the backend already sends per reply (see persona.js's [wave]/[point]/
+// [think] parsing) but the frontend never wired to any actual animation until now.
+// 'think' isn't listed here — it's already expressed as a head tilt in
+// _updateGazeAndIdle() via `state === 'thinking'`, not a timed arm pose.
+const GESTURE_DURATION = { wave: 1.8, point: 1.3 };
+
 /**
  * Drives idle motion, gaze/head tracking, blinking, and viseme-driven lip sync
  * on top of a KaneViewer's loaded model. Works against either a real glTF avatar
@@ -25,6 +37,7 @@ export class KaneAnimator {
     this.blinkPhase = 0; // 0 = open, ramps to 1 (closed) and back
     this.idleT = 0;
     this.state = 'idle'; // 'idle' | 'thinking' | 'talking'
+    this.gesture = null; // { name, startedAt } — a timed arm animation, see playGesture()
 
     window.addEventListener('pointermove', (e) => {
       this.pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -40,10 +53,17 @@ export class KaneAnimator {
   /** 'idle' | 'thinking' | 'talking' — drives subtle posture cues beyond mouth/blink/gaze. */
   setState(state) { this.state = state; }
 
+  /** Plays a timed arm gesture (e.g. from the LLM's [wave]/[point] reply tag). No-op for unknown names ('think' included — that's a head tilt, not an arm pose). */
+  playGesture(name) {
+    if (!GESTURE_DURATION[name]) return;
+    this.gesture = { name, startedAt: this.idleT };
+  }
+
   update(dt) {
     this.idleT += dt;
     this._updateBlink(dt);
     this._updateGazeAndIdle();
+    this._updateArms();
     this._updateMouth(dt);
   }
 
@@ -102,6 +122,48 @@ export class KaneAnimator {
 
     if (this.viewer.root && !head) {
       this.viewer.root.position.y = breathe * 0.3;
+    }
+  }
+
+  /** Ambient idle arm sway, plus a timed gesture pose (see playGesture()) that overrides
+   *  the right arm's sway while it plays. Raw-glTF rigs only (no VRM humanoid arm bones
+   *  wired up yet — VRM_BONE_KEYS doesn't include arms). */
+  _updateArms() {
+    const bones = this.viewer.bones || {};
+    const rest = this.viewer.boneRest || {};
+    if (!bones.armL && !bones.armR) return;
+
+    // `raise` is side-agnostic thanks to ARM_SIDE_SIGN — positive always means "up" on
+    // either arm. `bend` drives the forearm the same way (elbow lift), same convention.
+    const setArm = (side, raise, bend) => {
+      const arm = bones['arm' + side];
+      const armRest = rest['arm' + side];
+      if (arm && armRest) arm.rotation.y = armRest.y + ARM_SIDE_SIGN[side] * raise;
+      const forearm = bones['forearm' + side];
+      const forearmRest = rest['forearm' + side];
+      if (forearm && forearmRest) forearm.rotation.y = forearmRest.y + ARM_SIDE_SIGN[side] * bend;
+    };
+
+    // Ambient sway for both arms by default — phase-offset between sides (rather than a
+    // mirrored 0/π pair) so the motion reads as organic idling, same idea as the
+    // head/spine sway above.
+    setArm('L', Math.sin(this.idleT * 0.55) * 0.035, Math.sin(this.idleT * 0.7 + 0.8) * 0.03);
+    setArm('R', Math.sin(this.idleT * 0.55 + Math.PI * 0.7) * 0.035, Math.sin(this.idleT * 0.7 + 2.1) * 0.03);
+
+    if (!this.gesture) return;
+    const elapsed = this.idleT - this.gesture.startedAt;
+    const duration = GESTURE_DURATION[this.gesture.name];
+    if (elapsed >= duration) { this.gesture = null; return; }
+
+    // Ease into the pose over the first fifth, hold, ease back out over the last fifth —
+    // avoids the arm snapping instantly into and out of the gesture.
+    const t = elapsed / duration;
+    const ease = t < 0.2 ? t / 0.2 : t > 0.8 ? (1 - t) / 0.2 : 1;
+    if (this.gesture.name === 'wave') {
+      const wiggle = Math.sin(t * Math.PI * 10) * 0.4; // side-to-side wave motion at the wrist/forearm
+      setArm('R', 1.6 * ease, wiggle * ease);
+    } else if (this.gesture.name === 'point') {
+      setArm('R', 1.3 * ease, -0.3 * ease);
     }
   }
 

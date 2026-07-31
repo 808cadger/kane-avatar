@@ -55,14 +55,31 @@ export class KaneVoice {
     window.speechSynthesis.cancel();
     clearTimeout(this._visemeTimer);
     clearInterval(this._talkInterval);
-    const u = new SpeechSynthesisUtterance(text);
+    clearTimeout(this._minDurationTimer);
+
+    const startedAt = Date.now();
+    const words = splitWords(text);
+    // Floor for how long the caption stays up, independent of actual TTS duration.
+    // Covers machines with no TTS voices installed (common on bare Linux — confirmed
+    // via getVoices().length === 0 below), where speechSynthesis errors out near-
+    // instantly with nothing audible and would otherwise clear the reply before
+    // anyone could read it.
+    const minVisibleMs = Math.min(12000, Math.max(1200, words.length * 280));
     const voices = window.speechSynthesis.getVoices();
+
+    if (!voices.length) {
+      onStart?.();
+      this._startFallbackChatter();
+      this._minDurationTimer = setTimeout(() => { this._stopMouth(); onEnd?.(); }, minVisibleMs);
+      return;
+    }
+
+    const u = new SpeechSynthesisUtterance(text);
     const pref = voices.find((v) => v.lang.startsWith('en') && v.localService)
       || voices.find((v) => v.lang.startsWith('en'));
     if (pref) u.voice = pref;
     u.rate = 1.0; u.pitch = 1.0;
 
-    const words = splitWords(text);
     let boundaryFired = false;
     u.onboundary = (e) => {
       if (e.name && e.name !== 'word') return; // ignore sentence-level boundaries
@@ -76,7 +93,12 @@ export class KaneVoice {
       // chatter rather than leaving the mouth frozen shut for the whole reply.
       setTimeout(() => { if (!boundaryFired) this._startFallbackChatter(); }, 250);
     };
-    u.onend = u.onerror = () => { this._stopMouth(); onEnd?.(); };
+    u.onend = u.onerror = () => {
+      this._stopMouth();
+      const remaining = minVisibleMs - (Date.now() - startedAt);
+      if (remaining > 0) this._minDurationTimer = setTimeout(() => onEnd?.(), remaining);
+      else onEnd?.();
+    };
     window.speechSynthesis.speak(u);
   }
 

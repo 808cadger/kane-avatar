@@ -155,7 +155,7 @@ export function mountKane({ mode = 'corner', position = 'bottom-right', containe
   const voice = new KaneVoice({ onViseme: (name, weight) => animator.setViseme(name, weight) });
   const telemetry = new KaneTelemetry();
 
-  function presentReply({ reply, highlight }) {
+  function presentReply({ reply, gesture, highlight }) {
     const clean = stripMarkdown(reply);
     // Ignore any name the LLM didn't copy exactly from the manifest we gave it —
     // Python's registry lookup already guards this too, but failing silently
@@ -166,6 +166,7 @@ export function mountKane({ mode = 'corner', position = 'bottom-right', containe
     setStatus('speaking…');
     setCaption(clean);
     animator.setState('talking');
+    if (gesture) animator.playGesture(gesture);
     decision.setPaused(true);
     voice.speak(clean, {
       onEnd: () => {
